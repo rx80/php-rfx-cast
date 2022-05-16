@@ -14,5 +14,7 @@
             "email": "rok@faith.si"
         }
     ],
-    "require": {}
+    "require-dev": {
+        "phpstan/phpstan": "*"
+    }
 }
