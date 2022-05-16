@@ -1,0 +1,18 @@
+{
+    "name": "rfx/cast",
+    "description": "Cast / convert a stdClass or any other class to another class",
+    "type": "library",
+    "license": ["LGPL-2.1-only", "GPL-2.0-only"],
+    "autoload": {
+        "psr-4": {
+            "rfx\\Cast\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Rok Faith",
+            "email": "rok@faith.si"
+        }
+    ],
+    "require": {}
+}
