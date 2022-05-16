@@ -6,7 +6,7 @@ Allows you to cast a stdClass (or any other class) to some other class.
 
 ## INSTALL
 ```bash
-composer require rfx/rfx-cast
+composer require rfx/cast
 ```
 
 ## USAGE
