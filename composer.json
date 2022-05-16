@@ -5,7 +5,7 @@
     "license": ["LGPL-2.1-only", "GPL-2.0-only"],
     "autoload": {
         "psr-4": {
-            "rfx\\Cast\\": "src/"
+            "rfx\\Type\\": "src/"
         }
     },
     "authors": [

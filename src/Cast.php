@@ -1,6 +1,6 @@
 <?php declare(strict_types=1);
 #SPDX-License-Identifier: LGPL-2.1-only or GPL-2.0-only
-namespace rfx\Cast;
+namespace rfx\Type;
 
 use TypeError;
 
