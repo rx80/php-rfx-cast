@@ -7,8 +7,9 @@ use TypeError;
 final class Cast
 {
     /**
-     * Cast some object `$obj` as type `$as` using dirty serialize trick.
-     * Before using this, beware of the dangers of `unserialize`. READ THE DOCS!
+     * Cast some object `$obj` as type `$as`.
+     * This uses a dirty serialize trick.
+     * Before using, beware of the dangers of `unserialize`. READ THE DOCS!
      * @template T of object
      * @param object $obj The source object
      * @param class-string<T> $as The type to cast it as
@@ -16,7 +17,7 @@ final class Cast
      *                                      `true` to allow *any* class to be loaded (dangerous).
      * @return T
      */
-    public static function dirty(object $obj, string $as, $allowedClasses = [])
+    public static function as(object $obj, string $as, $allowedClasses = [])
     {
         assert(is_array($allowedClasses) || $allowedClasses === true, "Invalid argument value for 'allowedClasses'");
         assert(
