@@ -2,10 +2,127 @@
 #SPDX-License-Identifier: LGPL-2.1-only or GPL-2.0-only
 namespace rfx\Type;
 
+use ArgumentCountError;
+use Generator;
+use ReflectionClass;
+use ReflectionException;
+use ReflectionNamedType;
+use ReflectionObject;
+use ReflectionProperty;
 use TypeError;
 
 final class Cast
 {
+    /** When casting, throw a TypeError when a property that does not exist on target is encountered. */
+    public const CAST_UNKNOWN_THROW = 1;
+    /** When casting, silently skip any property that does not exist on target class. */
+    public const CAST_UNKNOWN_IGNORE = 2;
+    /**
+     * When casting, dynamically assign any property that does not exist on target class.
+     * TODO: This will be deprecated in PHP-8.2, and error in PHP-9.0. https://wiki.php.net/rfc/deprecate_dynamic_properties
+     */
+    public const CAST_UNKNOWN_DYNAMIC = 3;
+
+    /**
+     * TODO: initialize class properties (static and not) to default values when instantiating
+     * Cast some object `$obj` as type `$as` using reflection, recursively handling nested objects.
+     * @template T of object
+     * @param object $obj The source object
+     * @param class-string<T> $as The type to cast it as
+     * @param bool $avoidConstructor If true, do not use `new` to create the target object
+     * @param int $unknownAction Action to take when an unknown property is encountered (see self::CAST_UNKNOWN_*)
+     * @phpstan-param self::CAST_UNKNOWN_* $unknownAction
+     * @return T
+     * @throws ReflectionException
+     * @throws ArgumentCountError
+     * @throws TypeError
+     */
+    public static function as(object $obj, string $as, bool $avoidConstructor = true, int $unknownAction = self::CAST_UNKNOWN_THROW)
+    {
+        /**
+         * Create an instance of `$as`.
+         * This may throw `ReflectionException` if `$avoidConstructor` is `true`
+         * It may throw `ArgumentCountError` if `$avoidConstructor` is `false`
+         * @var T
+         */
+        $dest = $avoidConstructor
+            ? (new ReflectionClass($as))->newInstanceWithoutConstructor()
+            : new $as();
+        assert($dest instanceof $as);
+
+        $destReflection = new ReflectionObject($dest);
+        foreach (self::propertiesOf($obj) as $name => $value) {
+            if ($destReflection->hasProperty($name)) {
+                $destProp = $destReflection->getProperty($name);
+                $destProp->setAccessible(true);
+                if ($destProp->isStatic()) {
+                    continue;
+                }
+                $destProp->setValue(
+                    $dest,
+                    self::valueOf($value, $destProp, $avoidConstructor, $unknownAction)
+                );
+                continue;
+            }
+            switch ($unknownAction) {
+                case self::CAST_UNKNOWN_THROW:
+                    throw new TypeError('Destination object missing property: ' . $name);
+                case self::CAST_UNKNOWN_IGNORE:
+                    continue 2;
+                case self::CAST_UNKNOWN_DYNAMIC:
+                    $dest->$name = $value;
+            }
+        }
+
+        return $dest;
+    }
+
+    /**
+     * Iterate over `$obj`'s properties, generating [name => value]
+     * @param object $obj
+     * @return Generator<non-empty-string, mixed>
+     */
+    private static function propertiesOf(object $obj): Generator
+    {
+        $reflection = new ReflectionObject($obj);
+        foreach ($reflection->getProperties() as $property) {
+            $property->setAccessible(true);
+            $propName = $property->getName();
+            if ($propName === '') {
+                throw new TypeError('Property with empty name in source object');
+            }
+            yield $propName => $property->getValue($obj);
+        }
+    }
+
+    /**
+     * TODO: support intersection and union types (https://www.php.net/manual/en/class.reflectiontype.php)
+     * @param mixed $value
+     * @param ReflectionProperty $prop
+     * @param bool $avoidConstructor
+     * @param int $unknownAction
+     * @phpstan-param self::CAST_UNKNOWN_* $unknownAction
+     * @return mixed
+     * @throws ReflectionException
+     * @throws ArgumentCountError
+     * @throws TypeError
+     */
+    private static function valueOf($value, ReflectionProperty $prop, bool $avoidConstructor, int $unknownAction)
+    {
+        $destType = $prop->getType();
+        if (!($destType instanceof ReflectionNamedType)) {
+            return $value;
+        }
+        $destClass = $destType->getName();
+        assert(class_exists($destClass));
+        return self::as(
+            (object)$value,
+            $destClass,
+            $avoidConstructor,
+            $unknownAction
+        );
+    }
+
     /**
      * Cast some object `$obj` as type `$as`.
      * This uses a dirty serialize trick.
@@ -18,7 +135,7 @@ final class Cast
      *                                      `true` to allow *any* class to be loaded (dangerous).
      * @return T
      */
-    public static function as(object $obj, string $as, $allowedClasses = [])
+    public static function dirty(object $obj, string $as, $allowedClasses = [])
     {
         assert(is_array($allowedClasses) || $allowedClasses === true, "Invalid argument value for 'allowedClasses'");
         assert(
