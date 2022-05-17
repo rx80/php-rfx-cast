@@ -29,7 +29,8 @@ However:
 
 ### Solution
 ```php
-// 1. Create a proper class that defines those properties
+// Create a proper class that defines those properties
+use rfx\Type\Cast;
 class Point {
     public string $name;
     public int $x;
@@ -37,15 +38,14 @@ class Point {
 
     public static function fromObj(object $obj): self
     {
+        // Cast it
         return Cast::as($obj, self::class);
     }
 }
 
-use rfx\Type\Cast;
-
-// 2. Get your object (from a json source, some external lib, ...). As demonstration we create one here from an array.
+// Get your object (from a json source, some external lib, ...). As demonstration we create one here from an array.
 $obj = (object)['name' => 'P1', 'x' => 4, 'y' => 5];
-// 2. Convert it
+// Convert it
 $p = Point::fromObj($obj);
 ```
 
