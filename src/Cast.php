@@ -70,7 +70,7 @@ final class Cast
      * Cast some object `$obj` as type `$as` using reflection, recursively handling nested objects.
      * @param object $obj The source object
      * @param class-string<O> $as The type to cast it as
-     * @param bool $avoidConstructor If true, do not use `new` to create the target object
+     * @param bool $useConstructor If true, use `new` to create the target object
      * @param int $unknownAction Action to take when an unknown property is encountered (see self::CAST_UNKNOWN_*)
      * @phpstan-param self::CAST_UNKNOWN_* $unknownAction
      * @return O
@@ -78,7 +78,7 @@ final class Cast
      * @throws ArgumentCountError
      * @throws TypeError
      */
-    public static function as(object $obj, string $as, bool $avoidConstructor = true, int $unknownAction = self::CAST_UNKNOWN_THROW)
+    public static function as(object $obj, string $as, bool $useConstructor = false, int $unknownAction = self::CAST_UNKNOWN_THROW)
     {
         /**
          * Create an instance of `$as`.
@@ -86,9 +86,9 @@ final class Cast
          * It may throw `ArgumentCountError` if `$avoidConstructor` is `false`
          * @var O
          */
-        $dest = $avoidConstructor
-            ? (new ReflectionClass($as))->newInstanceWithoutConstructor()
-            : new $as();
+        $dest = $useConstructor
+            ? new $as()
+            : (new ReflectionClass($as))->newInstanceWithoutConstructor();
         assert($dest instanceof $as);
 
         $destReflection = new ReflectionObject($dest);
@@ -101,7 +101,7 @@ final class Cast
                 }
                 $destProp->setValue(
                     $dest,
-                    self::valueOf($value, $destProp, $avoidConstructor, $unknownAction)
+                    self::valueOf($value, $destProp, $useConstructor, $unknownAction)
                 );
                 continue;
             }
@@ -140,7 +140,7 @@ final class Cast
      * TODO: support intersection and union types (https://www.php.net/manual/en/class.reflectiontype.php)
      * @param mixed $value
      * @param ReflectionProperty $prop
-     * @param bool $avoidConstructor
+     * @param bool $useConstructor
      * @param int $unknownAction
      * @phpstan-param self::CAST_UNKNOWN_* $unknownAction
      * @return mixed
@@ -148,7 +148,7 @@ final class Cast
      * @throws ArgumentCountError
      * @throws TypeError
      */
-    private static function valueOf($value, ReflectionProperty $prop, bool $avoidConstructor, int $unknownAction)
+    private static function valueOf($value, ReflectionProperty $prop, bool $useConstructor, int $unknownAction)
     {
         $destType = $prop->getType();
         if (!($destType instanceof ReflectionNamedType) || $destType->isBuiltin()) {
@@ -159,7 +159,7 @@ final class Cast
         return self::as(
             (object)$value,
             $destClass,
-            $avoidConstructor,
+            $useConstructor,
             $unknownAction
         );
     }

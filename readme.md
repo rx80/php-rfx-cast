@@ -61,5 +61,36 @@ Point Object
  - All static analysis tools will help you find problems
  - Autocompletion, type checks, etc. work again
 
+### Speed
+If performance is important and:
+ - you are casting many objects of the same type
+ - all your objects are shallow (no nesting)
+ - all the properties are scalar types
+
+then you can use the faster alternative, which is as performant as a normal constructor:
+```php
+// Create a proper class that defines those properties
+use rfx\Type\Cast;
+class Point {
+    public string $name;
+    public int $x;
+    public int $y;
+}
+
+/** @return Point[] */
+function getPoints(): array {
+    // Get your objects (from a json source, some external lib, ...).
+    // As demonstration we create a million from an array.
+    $obj = (object)['name' => 'P1', 'x' => 4, 'y' => 5];
+    $objs = array_fill(0, 1000000, $obj);
+    // Create a factory
+    $cf = new Cast(Point::class);
+    // Cast them all
+    return array_map([$cf, 'cast'], $objs);
+}
+
+$p = getPoints();
+```
+
 ## LIMITATIONS
 This section needs to be written, and some future plans added.
