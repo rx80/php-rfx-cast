@@ -9,6 +9,7 @@ final class Cast
     /**
      * Cast some object `$obj` as type `$as`.
      * This uses a dirty serialize trick.
+     * This is not recursive, nested objects remain unchanged.
      * Before using, beware of the dangers of `unserialize`. READ THE DOCS!
      * @template T of object
      * @param object $obj The source object

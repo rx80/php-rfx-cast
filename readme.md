@@ -34,14 +34,19 @@ class Point {
     public string $name;
     public int $x;
     public int $y;
+
+    public static function fromObj(object $obj): self
+    {
+        return Cast::as($obj, self::class);
+    }
 }
 
-// 2. Get your object (from a json source, some external lib, ...). As demonstration we create one here from an array.
-$obj = (object)['name' => 'P1', 'x' => 5, 'y' => 6];
-
-// 2. Just cast it
 use rfx\Type\Cast;
-$point = Cast::as($obj, Point::class);
+
+// 2. Get your object (from a json source, some external lib, ...). As demonstration we create one here from an array.
+$obj = (object)['name' => 'P1', 'x' => 4, 'y' => 5];
+// 2. Convert it
+$p = Point::fromObj($obj);
 ```
 
 ### Result
