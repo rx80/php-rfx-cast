@@ -35,18 +35,17 @@ class Point {
     public string $name;
     public int $x;
     public int $y;
-
-    public static function fromObj(object $obj): self
-    {
-        // Cast it
-        return Cast::as($obj, self::class);
-    }
 }
 
-// Get your object (from a json source, some external lib, ...). As demonstration we create one here from an array.
-$obj = (object)['name' => 'P1', 'x' => 4, 'y' => 5];
-// Convert it
-$p = Point::fromObj($obj);
+function getPoint(): Point {
+    // Get your object (from a json source, some external lib, ...).
+    // As demonstration we create one here from an array.
+    $obj = (object)['name' => 'P1', 'x' => 4, 'y' => 5];
+    // Cast it
+    return Cast::as($obj, Point::class);
+}
+
+$p = getPoint();
 ```
 
 ### Result
