@@ -110,7 +110,7 @@ final class Cast
     private static function valueOf($value, ReflectionProperty $prop, bool $avoidConstructor, int $unknownAction)
     {
         $destType = $prop->getType();
-        if (!($destType instanceof ReflectionNamedType)) {
+        if (!($destType instanceof ReflectionNamedType) || $destType->isBuiltin()) {
             return $value;
         }
         $destClass = $destType->getName();
