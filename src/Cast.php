@@ -11,6 +11,9 @@ use ReflectionObject;
 use ReflectionProperty;
 use TypeError;
 
+/**
+ * @template O of object
+ */
 final class Cast
 {
     /** When casting, throw a TypeError when a property that does not exist on target is encountered. */
@@ -23,16 +26,54 @@ final class Cast
      */
     public const CAST_UNKNOWN_DYNAMIC = 3;
 
+    /** @var string[] */
+    private array $propertyNames;
+    /** @var class-string<O> */
+    private string $as;
+    private bool $useConstructor;
+
+    /**
+     * Cast factory. Quickest method if we're casting a lot of objects.
+     * @param class-string<O> $as
+     * @throws ReflectionException
+     */
+    public function __construct(string $as, bool $useConstructor = false)
+    {
+        $this->useConstructor = $useConstructor;
+        $this->as = $as;
+        assert(class_exists($this->as));
+        $reflection = new ReflectionClass($this->as);
+        $this->propertyNames = [];
+        foreach ($reflection->getProperties() as $p) {
+            $this->propertyNames[] = $p->getName();
+        }
+    }
+
+    /**
+     * @param object $obj
+     * @return O
+     * @throws ReflectionException
+     */
+    public function cast(object $obj)
+    {
+        $dest = $this->useConstructor
+            ? new ($this->as)()
+            : (new ReflectionClass($this->as))->newInstanceWithoutConstructor();
+        foreach ($this->propertyNames as $name) {
+            $dest->$name = $obj->$name;
+        }
+        return $dest;
+    }
+
     /**
      * TODO: initialize class properties (static and not) to default values when instantiating
      * Cast some object `$obj` as type `$as` using reflection, recursively handling nested objects.
-     * @template T of object
      * @param object $obj The source object
-     * @param class-string<T> $as The type to cast it as
+     * @param class-string<O> $as The type to cast it as
      * @param bool $avoidConstructor If true, do not use `new` to create the target object
      * @param int $unknownAction Action to take when an unknown property is encountered (see self::CAST_UNKNOWN_*)
      * @phpstan-param self::CAST_UNKNOWN_* $unknownAction
-     * @return T
+     * @return O
      * @throws ReflectionException
      * @throws ArgumentCountError
      * @throws TypeError
@@ -43,7 +84,7 @@ final class Cast
          * Create an instance of `$as`.
          * This may throw `ReflectionException` if `$avoidConstructor` is `true`
          * It may throw `ArgumentCountError` if `$avoidConstructor` is `false`
-         * @var T
+         * @var O
          */
         $dest = $avoidConstructor
             ? (new ReflectionClass($as))->newInstanceWithoutConstructor()
@@ -128,12 +169,11 @@ final class Cast
      * This uses a dirty serialize trick.
      * This is not recursive, nested objects remain unchanged.
      * Before using, beware of the dangers of `unserialize`. READ THE DOCS!
-     * @template T of object
      * @param object $obj The source object
-     * @param class-string<T> $as The type to cast it as
+     * @param class-string<O> $as The type to cast it as
      * @param true|string[] $allowedClasses List of any other classes (besides `$as`) to allow being instantiated.
      *                                      `true` to allow *any* class to be loaded (dangerous).
-     * @return T
+     * @return O
      */
     public static function dirty(object $obj, string $as, $allowedClasses = [])
     {
@@ -161,5 +201,22 @@ final class Cast
         }
 
         return $out;
+    }
+
+    /**
+     * @param object $obj
+     * @param class-string<O> $as
+     * @return O
+     */
+    public static function quick(object $obj, string $as)
+    {
+        $dest = new $as();
+        $reflection = new ReflectionObject($obj);
+        foreach ($reflection->getProperties() as $property) {
+            $propName = $property->getName();
+            $dest->$propName = $property->getValue($obj);
+        }
+
+        return $dest;
     }
 }
