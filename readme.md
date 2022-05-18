@@ -16,9 +16,12 @@ So you received a beautiful object that you want to use
 ```
 stdClass Object
 (
-    [name] => P1
-    [x] => 4
-    [y] => 6
+    [name] => home
+    [at] => stdClass Object
+        (
+            [x] => 4
+            [y] => 5
+        )
 )
 ```
 However:
@@ -29,32 +32,40 @@ However:
 
 ### Solution
 ```php
-// Create a proper class that defines those properties
+declare(strict_types=1);
+// Create class(es) that define(s) those properties
 use rfx\Type\Cast;
 class Point {
-    public string $name;
     public int $x;
     public int $y;
 }
 
-function getPoint(): Point {
-    // Get your object (from a json source, some external lib, ...).
-    // As demonstration we create one here from an array.
-    $obj = (object)['name' => 'P1', 'x' => 4, 'y' => 5];
-    // Cast it
-    return Cast::as($obj, Point::class);
+class Location {
+    public string $name;
+    public Point $at;
 }
 
-$p = getPoint();
+function getLocation(): Location {
+    // Get your object (from a json source, some external lib, ...).
+    // As demonstration we create one here from an array.
+    $obj = (object)['name' => 'home', 'at' => ['x' => 4, 'y' => 5]];
+    // Cast it (this works recursively, e.g. Location contains a Point object)
+    return Cast::as($obj, Location::class);
+}
+
+$l = getLocation();
 ```
 
 ### Result
 ```
-Point Object
+Location Object
 (
-    [name] => P1
-    [x] => 5
-    [y] => 6
+    [name] => home
+    [at] => Point Object
+        (
+            [x] => 4
+            [y] => 5
+        )
 )
 ```
  - Your IDE loves you again
@@ -69,6 +80,7 @@ If performance is important and:
 
 then you can use the faster alternative, which is as performant as a normal constructor:
 ```php
+declare(strict_types=1);
 // Create a proper class that defines those properties
 use rfx\Type\Cast;
 class Point {
