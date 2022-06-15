@@ -35,7 +35,6 @@ final class Cast
     /**
      * Cast factory. Quickest method if we're casting a lot of objects.
      * @param class-string<O> $as
-     * @throws ReflectionException
      */
     public function __construct(string $as, bool $useConstructor = false)
     {
@@ -150,15 +149,16 @@ final class Cast
      */
     private static function valueOf($value, ReflectionProperty $prop, bool $useConstructor, int $unknownAction)
     {
-        $destType = $prop->getType();
-        if (!($destType instanceof ReflectionNamedType) || $destType->isBuiltin()) {
+        if (!$prop->hasType() || is_scalar($value) || is_array($value) || $value === null) {
             return $value;
         }
+        $destType = $prop->getType();
+        assert($destType instanceof ReflectionNamedType);
         $destClass = $destType->getName();
         assert(class_exists($destClass));
         return self::as(
             (object)$value,
-            $destClass,
+            $destClass, /** @phpstan-ignore-line type can't be statically inferred here */
             $useConstructor,
             $unknownAction
         );
@@ -171,7 +171,7 @@ final class Cast
      * Before using, beware of the dangers of `unserialize`. READ THE DOCS!
      * @param object $obj The source object
      * @param class-string<O> $as The type to cast it as
-     * @param true|string[] $allowedClasses List of any other classes (besides `$as`) to allow being instantiated.
+     * @param true|class-string[] $allowedClasses List of any other classes (besides `$as`) to allow being instantiated.
      *                                      `true` to allow *any* class to be loaded (dangerous).
      * @return O
      */
