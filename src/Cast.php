@@ -57,7 +57,7 @@ final class Cast
     public function cast(object $obj)
     {
         $dest = $this->useConstructor
-            ? new ($this->as)()
+            ? new $this->as
             : (new ReflectionClass($this->as))->newInstanceWithoutConstructor();
         foreach ($this->propertyNames as $name) {
             $dest->$name = $obj->$name;
